@@ -508,18 +508,17 @@ func TestApp(t *testing.T) {
 			}
 			defer resp.Body.Close()
 			respBody, err := ioutil.ReadAll(resp.Body)
+
 			// t.Logf("\nreq body: %s\nresp body: %s", body, respBody)
 
 			if item.ResponseStatus != resp.StatusCode {
 				t.Fatalf("bad status code, want: %v, have:%v", item.ResponseStatus, resp.StatusCode)
 			}
-
-			// for cases with just status check
 			if item.Expected == nil {
 				return
 			}
 			got := WeirdMagicClone(item.Expected)
-			fmt.Println(item.Expected)
+			fmt.Println(string(respBody))
 			err = json.Unmarshal(respBody, got)
 			if err != nil {
 				t.Fatalf("cant unmarshal resp: %s, body: %s", err, respBody)

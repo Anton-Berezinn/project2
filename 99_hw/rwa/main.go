@@ -5,14 +5,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	Start "rwa/projectfile/internal/handlers/register"
 )
 
 // сюда код писать не надо
 
 func main() {
 	addr := ":8080"
-	h := Start.GetApp()
+	h := GetApp()
 	fmt.Println("start server at", addr)
 	http.ListenAndServe(addr, h)
 	stop := make(chan os.Signal, 1)

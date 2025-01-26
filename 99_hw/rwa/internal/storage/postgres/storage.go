@@ -1,7 +1,7 @@
 package postgres
 
 import (
-	rp "rwa/projectfile/internal/model"
+	rp "rwa/internal/model"
 	"sync"
 )
 

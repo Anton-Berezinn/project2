@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"rwa/projectfile/internal/model"
+	"rwa/internal/model"
 )
 
 // ReadBody - функция,для чтения данных пользователя в структуру User, отдает ответ вложенную структуру.
 func ReadBody(r io.ReadCloser) (model.DataUser, error) {
-	u := &model.User{}
+	u := &model.Userr{}
 	resp, err := io.ReadAll(r)
 	if err != nil {
 		return u.DataUser, fmt.Errorf("error in read %w", err)

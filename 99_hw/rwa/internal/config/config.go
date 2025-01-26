@@ -2,13 +2,12 @@ package config
 
 import (
 	"fmt"
-	"os"
 )
 
 // ConfigNew - возвращает секретный ключ
 func ConfigNew() (string, error) {
 
-	secretKey := os.Getenv("SECRET_KEY")
+	secretKey := "key"
 	if secretKey == "" {
 		return "", fmt.Errorf("SECRET_KEY is not set")
 	}
