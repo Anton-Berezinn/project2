@@ -35,21 +35,49 @@ func (r *Reposit) Add(u rp.DataUser) int {
 	return r.Count - 1
 }
 
-// Get- метод для получения пользователя по индексу.
-func (r *Reposit) Get(id int) (rp.DataUser, bool) {
+// GetCr- метод для получения пользователя по индексу.
+func (r *Reposit) GetCr(id int) (rp.DataUser, bool) {
 	user, exists := r.DB[id]
-	return *user, exists
+	if !exists {
+		return rp.DataUser{}, false
+	}
+	a := rp.DataUser{
+		Email:    user.Email,
+		Username: user.Username,
+		Bio:      user.Bio,
+	}
+	return a, true
+
+}
+
+func (r *Reposit) Check(user rp.DataUser) (string, bool) {
+	for _, u := range r.DB {
+		if u.Email == user.Email && u.Password == user.Password {
+			return u.Username, true
+		}
+	}
+	return "", false
 }
 
 // Update - метод для обновления данных пользователя.
-func (r *Reposit) Update(id int, u rp.DataUser) bool {
+func (r *Reposit) Update(id int, user rp.DataUser) (rp.DataUser, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if _, exists := r.DB[id]; exists {
-		r.DB[id] = &u
-		return true
+	if data, exists := r.DB[id]; exists {
+		if user.Email != "" {
+			data.Email = user.Email
+		}
+		if user.Bio != "" {
+			data.Bio = user.Bio
+		}
+		u := rp.DataUser{
+			Username: data.Username,
+			Email:    data.Email,
+			Bio:      data.Bio,
+		}
+		return u, true
 	}
-	return false
+	return rp.DataUser{}, false
 }
 
 // Delete - метод для удаления пользователей.

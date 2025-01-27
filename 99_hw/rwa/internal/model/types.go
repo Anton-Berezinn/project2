@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type Userr struct {
 	DataUser `json:"user"`
 }
@@ -10,17 +12,18 @@ type DataUser struct {
 	Email    string `json:"email"`
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Bio      string `json:"bio"`
 }
 
 type TestProfile struct {
-	ID        string   `json:"id" testdiff:"ignore"`
-	Email     string   `json:"email"`
-	CreatedAt FakeTime `json:"createdAt"`
-	UpdatedAt FakeTime `json:"updatedAt"`
-	Username  string   `json:"username"`
-	Bio       string   `json:"bio"`
-	Image     string   `json:"image"`
-	Token     string   `json:"token" testdiff:"ignore"`
+	ID        string    `json:"id" testdiff:"ignore"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	Username  string    `json:"username"`
+	Bio       string    `json:"bio"`
+	Image     string    `json:"image"`
+	Token     string    `json:"token" testdiff:"ignore"`
 	Following bool
 }
 

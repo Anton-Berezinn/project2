@@ -2,22 +2,24 @@ package response
 
 import (
 	"encoding/json"
-	"fmt"
 	"rwa/internal/model"
+	"time"
 )
 
 // AnswerUser - функция, для ответа юзеру
 func AnswerUser(u model.DataUser) ([]byte, error) {
-	var answer model.Response
-	data, err := json.Marshal(u)
-	if err != nil {
-		return nil, fmt.Errorf("error in marshal %w", err)
+	answer := model.Response{
+		User: model.TestProfile{
+			ID:        u.ID,
+			Email:     u.Email,
+			Username:  u.Username,
+			CreatedAt: time.Now(),
+			Bio:       u.Bio,
+		},
 	}
-	err = json.Unmarshal(data, &answer.User)
+	data, err := json.Marshal(answer)
 	if err != nil {
-		return nil, fmt.Errorf("error in unmarshal %w", err)
+		return nil, err
 	}
-	answer.User.CreatedAt.Valid = true
-	data, err = json.Marshal(answer.User)
-	return data, err
+	return data, nil
 }

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/d4l3k/messagediff"
+	"github.com/mcuadros/go-lookup"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -14,6 +14,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"gopkg.in/d4l3k/messagediff.v1"
 )
 
 type FakeTime struct {
@@ -136,359 +138,354 @@ func TestApp(t *testing.T) {
 					},
 				}
 			},
+			Before: nil,
+			After:  nil,
 		},
+		&ApiTestCase{
+			Name:           "Auth - Login",
+			Method:         "POST",
+			Body:           "{\"user\":{\"email\":\"{{EMAIL}}\", \"password\":\"{{PASSWORD}}\"}}",
+			URL:            "{{APIURL}}/users/login",
+			ResponseStatus: 200,
+			Expected: func() interface{} {
+				return &struct {
+					User TestProfile
+				}{
+					User: TestProfile{
+						Email:     tplParams["EMAIL"],
+						CreatedAt: FakeTime{true},
+						UpdatedAt: FakeTime{true},
+						Username:  tplParams["USERNAME"],
+					},
+				}
+			},
+			Before: nil,
+			After: func(r *http.Response, body []byte, resp interface{}) error {
+				val, err := lookup.LookupString(resp, "User.Token")
+				if err != nil {
+					return err
+				}
+				tplParams["token1"] = val.String()
+				return nil
+			},
+		},
+		&ApiTestCase{
+			Name:           "Auth - Current User",
+			Method:         "GET",
+			Body:           "",
+			URL:            "{{APIURL}}/user",
+			TokenName:      "token1",
+			ResponseStatus: 200,
+			Expected: func() interface{} {
+				return &struct {
+					User TestProfile
+				}{
+					User: TestProfile{
+						Email:     tplParams["EMAIL"],
+						CreatedAt: FakeTime{true},
+						UpdatedAt: FakeTime{true},
+						Username:  tplParams["USERNAME"],
+					},
+				}
+			},
+			Before: nil,
+			After:  nil,
+		},
+		&ApiTestCase{
+			Name:           "Auth - Update User",
+			Method:         "PUT",
+			Body:           `{"user":{"email":"{{EMAIL}}","bio":"{{BIO}}"}}`,
+			URL:            "{{APIURL}}/user",
+			TokenName:      "token1",
+			ResponseStatus: 200,
+			Expected: func() interface{} {
+				return &struct {
+					User TestProfile
+				}{
+					User: TestProfile{
+						Email:     tplParams["EMAIL"],
+						CreatedAt: FakeTime{true},
+						UpdatedAt: FakeTime{true},
+						Username:  tplParams["USERNAME"],
+						Bio:       tplParams["BIO"],
+					},
+				}
+			},
+			Before: func() {
+				tplParams["EMAIL"] = "u_" + tplParams["EMAIL"]
+			},
+			After: func(r *http.Response, body []byte, resp interface{}) error {
+				val, err := lookup.LookupString(resp, "User.Token")
+				if err != nil {
+					return err
+				}
+				tplParams["token1"] = val.String()
+				return nil
+			},
+		},
+		&ApiTestCase{
+			Name:           "Auth - Current User after Update",
+			Method:         "GET",
+			URL:            "{{APIURL}}/user",
+			TokenName:      "token1",
+			ResponseStatus: 200,
+			Expected: func() interface{} {
+				return &struct {
+					User TestProfile
+				}{
+					User: TestProfile{
+						Email:     tplParams["EMAIL"],
+						CreatedAt: FakeTime{true},
+						UpdatedAt: FakeTime{true},
+						Username:  tplParams["USERNAME"],
+						Bio:       tplParams["BIO"],
+					},
+				}
+			},
+		},
+		&ApiTestCase{
+			Name:           "Auth - Register second user",
+			Method:         "POST",
+			Body:           "{\"user\":{\"email\":\"{{EMAIL2}}\", \"password\":\"{{PASSWORD}}\", \"username\":\"{{USERNAME2}}\"}}",
+			URL:            "{{APIURL}}/users",
+			ResponseStatus: 201,
+			Expected: func() interface{} {
+				return &struct {
+					User TestProfile
+				}{
+					User: TestProfile{
+						Email:     tplParams["EMAIL2"],
+						CreatedAt: FakeTime{true},
+						UpdatedAt: FakeTime{true},
+						Username:  tplParams["USERNAME2"],
+					},
+				}
+			},
+			After: func(r *http.Response, body []byte, resp interface{}) error {
+				val, err := lookup.LookupString(resp, "User.Token")
+				if err != nil {
+					return err
+				}
+				tplParams["token2"] = val.String()
+				return nil
+			},
+		},
+		//&ApiTestCase{
+		//	Name:           "Articles - Create Article - First user",
+		//	Method:         "POST",
+		//	Body:           `{"article":{"title":"How to write golang tests", "description":"I have problem with mondodb mocking", "body":"Any ideas how to write some intermidiate layer atop collection?", "tagList":["golang","testing", "gomock"]}}`,
+		//	URL:            "{{APIURL}}/articles",
+		//	TokenName:      "token1",
+		//	ResponseStatus: 201,
+		//	Expected: func() interface{} {
+		//		return &struct {
+		//			Article TestArticle
+		//		}{
+		//			Article: TestArticle{
+		//				Author: TestProfile{
+		//					Bio:      tplParams["BIO"],
+		//					Username: tplParams["USERNAME"],
+		//				},
+		//				Body:        "Any ideas how to write some intermidiate layer atop collection?",
+		//				Title:       "How to write golang tests",
+		//				Description: "I have problem with mondodb mocking",
+		//				CreatedAt:   FakeTime{true},
+		//				UpdatedAt:   FakeTime{true},
+		//				TagList:     []string{"golang", "testing", "gomock"},
+		//			},
+		//		}
+		//	},
+		//	After: func(r *http.Response, body []byte, resp interface{}) error {
+		//		val, err := lookup.LookupString(resp, "Article.Slug")
+		//		if err != nil {
+		//			return err
+		//		}
+		//		tplParams["slug1"] = val.String()
+		//		return nil
+		//	},
+		//},
+		//&ApiTestCase{
+		//	Name:           "Articles - Create Article - Second user",
+		//	Method:         "POST",
+		//	Body:           `{"article":{"title":"What will be released first, Half-Life 3 or 3-rd part of golang course?", "description":"Who knows topics in new course?", "body":"Will we use JWT-tokens in homework?", "tagList":["halflife3","coursera"]}}`,
+		//	URL:            "{{APIURL}}/articles",
+		//	TokenName:      "token2",
+		//	ResponseStatus: 201,
+		//	Expected: func() interface{} {
+		//		return &struct {
+		//			Article TestArticle
+		//		}{
+		//			Article: TestArticle{
+		//				Author: TestProfile{
+		//					Username: tplParams["USERNAME2"],
+		//				},
+		//				Body:        "Will we use JWT-tokens in homework?",
+		//				Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
+		//				Description: "Who knows topics in new course?",
+		//				CreatedAt:   FakeTime{true},
+		//				UpdatedAt:   FakeTime{true},
+		//				TagList:     []string{"halflife3", "coursera"},
+		//			},
+		//		}
+		//	},
+		//	After: func(r *http.Response, body []byte, resp interface{}) error {
+		//		val, err := lookup.LookupString(resp, "Article.Slug")
+		//		if err != nil {
+		//			return err
+		//		}
+		//		tplParams["slug2"] = val.String()
+		//		return nil
+		//	},
+		//},
+		//
+		//&ApiTestCase{
+		//	Name:           "Articles - All Articles",
+		//	Method:         "GET",
+		//	URL:            "{{APIURL}}/articles",
+		//	ResponseStatus: 200,
+		//	Expected: func() interface{} {
+		//		return &struct {
+		//			Articles      []TestArticle `json:"articles"`
+		//			ArticlesCount int           `json:"articlesCount"`
+		//		}{
+		//			Articles: []TestArticle{
+		//				TestArticle{
+		//					Slug: tplParams["slug1"],
+		//					Author: TestProfile{
+		//						Bio:      tplParams["BIO"],
+		//						Username: tplParams["USERNAME"],
+		//					},
+		//					Body:        "Any ideas how to write some intermidiate layer atop collection?",
+		//					Title:       "How to write golang tests",
+		//					Description: "I have problem with mondodb mocking",
+		//					CreatedAt:   FakeTime{true},
+		//					UpdatedAt:   FakeTime{true},
+		//					TagList:     []string{"golang", "testing", "gomock"},
+		//				},
+		//				TestArticle{
+		//					Slug: tplParams["slug2"],
+		//					Author: TestProfile{
+		//						Username: tplParams["USERNAME2"],
+		//					},
+		//					Body:        "Will we use JWT-tokens in homework?",
+		//					Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
+		//					Description: "Who knows topics in new course?",
+		//					CreatedAt:   FakeTime{true},
+		//					UpdatedAt:   FakeTime{true},
+		//					TagList:     []string{"halflife3", "coursera"},
+		//				},
+		//			},
+		//			ArticlesCount: 2,
+		//		}
+		//	},
+		//	Before: nil,
+		//	After:  nil,
+		//},
+		//
+		//&ApiTestCase{
+		//	Name:           "Articles - by author",
+		//	Method:         "GET",
+		//	URL:            "{{APIURL}}/articles?author={{USERNAME2}}",
+		//	TokenName:      "token1",
+		//	ResponseStatus: 200,
+		//	Expected: func() interface{} {
+		//		return &struct {
+		//			Articles      []TestArticle `json:"articles"`
+		//			ArticlesCount int           `json:"articlesCount"`
+		//		}{
+		//			Articles: []TestArticle{
+		//				TestArticle{
+		//					Slug: tplParams["slug2"],
+		//					Author: TestProfile{
+		//						Username: tplParams["USERNAME2"],
+		//					},
+		//					Body:        "Will we use JWT-tokens in homework?",
+		//					Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
+		//					Description: "Who knows topics in new course?",
+		//					CreatedAt:   FakeTime{true},
+		//					UpdatedAt:   FakeTime{true},
+		//					TagList:     []string{"halflife3", "coursera"},
+		//				},
+		//			},
+		//			ArticlesCount: 1,
+		//		}
+		//	},
+		//	Before: nil,
+		//	After:  nil,
+		//},
+		//&ApiTestCase{
+		//	Name:           "Articles - by tag",
+		//	Method:         "GET",
+		//	URL:            "{{APIURL}}/articles?tag=halflife3",
+		//	TokenName:      "token1",
+		//	ResponseStatus: 200,
+		//	Expected: func() interface{} {
+		//		return &struct {
+		//			Articles      []TestArticle `json:"articles"`
+		//			ArticlesCount int           `json:"articlesCount"`
+		//		}{
+		//			Articles: []TestArticle{
+		//				TestArticle{
+		//					Slug: tplParams["slug2"],
+		//					Author: TestProfile{
+		//						Username: tplParams["USERNAME2"],
+		//					},
+		//					Body:        "Will we use JWT-tokens in homework?",
+		//					Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
+		//					Description: "Who knows topics in new course?",
+		//					CreatedAt:   FakeTime{true},
+		//					UpdatedAt:   FakeTime{true},
+		//					TagList:     []string{"halflife3", "coursera"},
+		//				},
+		//			},
+		//			ArticlesCount: 1,
+		//		}
+		//	},
+		//	Before: nil,
+		//	After:  nil,
+		//},
+		//
+		//&ApiTestCase{
+		//	Name:           "No Auth - Current User - No Auth",
+		//	Method:         "GET",
+		//	URL:            "{{APIURL}}/user",
+		//	TokenName:      "", // none
+		//	ResponseStatus: 401,
+		//},
+		//&ApiTestCase{
+		//	Name:           "No Auth - Current User Logout - Require Auth",
+		//	Method:         "POST",
+		//	URL:            "{{APIURL}}/user/logout",
+		//	TokenName:      "", // none
+		//	ResponseStatus: 401,
+		//},
+		//&ApiTestCase{
+		//	Name:           "No Auth - Current User Logout",
+		//	Method:         "POST",
+		//	URL:            "{{APIURL}}/user/logout",
+		//	TokenName:      "token1",
+		//	ResponseStatus: 200,
+		//},
+		//&ApiTestCase{
+		//	Name:           "No Auth - Current User - No Auth after logout",
+		//	Method:         "GET",
+		//	URL:            "{{APIURL}}/user",
+		//	TokenName:      "token1",
+		//	ResponseStatus: 401,
+		//},
 	}
-	//	Before: nil,
-	//	After:  nil,
-	//},
-	//&ApiTestCase{
-	//	Name:           "Auth - Login",
-	//	Method:         "POST",
-	//	Body:           "{\"user\":{\"email\":\"{{EMAIL}}\", \"password\":\"{{PASSWORD}}\"}}",
-	//	URL:            "{{APIURL}}/users/login",
-	//	ResponseStatus: 200,
-	//	Expected: func() interface{} {
-	//		return &struct {
-	//			User TestProfile
-	//		}{
-	//			User: TestProfile{
-	//				Email:     tplParams["EMAIL"],
-	//				CreatedAt: FakeTime{true},
-	//				UpdatedAt: FakeTime{true},
-	//				Username:  tplParams["USERNAME"],
-	//			},
-	//		}
-	//	},
-	//},
-	//		Before: nil,
-	//		After: func(r *http.Response, body []byte, resp interface{}) error {
-	//			val, err := lookup.LookupString(resp, "User.Token")
-	//			if err != nil {
-	//				return err
-	//			}
-	//			tplParams["token1"] = val.String()
-	//			return nil
-	//		},
-	//	},
-	//	&ApiTestCase{
-	//		Name:           "Auth - Current User",
-	//		Method:         "GET",
-	//		Body:           "",
-	//		URL:            "{{APIURL}}/user",
-	//		TokenName:      "token1",
-	//		ResponseStatus: 200,
-	//		Expected: func() interface{} {
-	//			return &struct {
-	//				User TestProfile
-	//			}{
-	//				User: TestProfile{
-	//					Email:     tplParams["EMAIL"],
-	//					CreatedAt: FakeTime{true},
-	//					UpdatedAt: FakeTime{true},
-	//					Username:  tplParams["USERNAME"],
-	//				},
-	//			}
-	//		},
-	//		Before: nil,
-	//		After:  nil,
-	//	},
-	//	&ApiTestCase{
-	//		Name:           "Auth - Update User",
-	//		Method:         "PUT",
-	//		Body:           `{"user":{"email":"{{EMAIL}}","bio":"{{BIO}}"}}`,
-	//		URL:            "{{APIURL}}/user",
-	//		TokenName:      "token1",
-	//		ResponseStatus: 200,
-	//		Expected: func() interface{} {
-	//			return &struct {
-	//				User TestProfile
-	//			}{
-	//				User: TestProfile{
-	//					Email:     tplParams["EMAIL"],
-	//					CreatedAt: FakeTime{true},
-	//					UpdatedAt: FakeTime{true},
-	//					Username:  tplParams["USERNAME"],
-	//					Bio:       tplParams["BIO"],
-	//				},
-	//			}
-	//		},
-	//		Before: func() {
-	//			tplParams["EMAIL"] = "u_" + tplParams["EMAIL"]
-	//		},
-	//		After: func(r *http.Response, body []byte, resp interface{}) error {
-	//			val, err := lookup.LookupString(resp, "User.Token")
-	//			if err != nil {
-	//				return err
-	//			}
-	//			tplParams["token1"] = val.String()
-	//			return nil
-	//		},
-	//	},
-	//	&ApiTestCase{
-	//		Name:           "Auth - Current User after Update",
-	//		Method:         "GET",
-	//		URL:            "{{APIURL}}/user",
-	//		TokenName:      "token1",
-	//		ResponseStatus: 200,
-	//		Expected: func() interface{} {
-	//			return &struct {
-	//				User TestProfile
-	//			}{
-	//				User: TestProfile{
-	//					Email:     tplParams["EMAIL"],
-	//					CreatedAt: FakeTime{true},
-	//					UpdatedAt: FakeTime{true},
-	//					Username:  tplParams["USERNAME"],
-	//					Bio:       tplParams["BIO"],
-	//				},
-	//			}
-	//		},
-	//	},
-	//&ApiTestCase{
-	//	Name:           "Auth - Register second user",
-	//	Method:         "POST",
-	//	Body:           "{\"user\":{\"email\":\"{{EMAIL2}}\", \"password\":\"{{PASSWORD}}\", \"username\":\"{{USERNAME2}}\"}}",
-	//	URL:            "{{APIURL}}/users",
-	//	ResponseStatus: 201,
-	//	Expected: func() interface{} {
-	//		return &struct {
-	//			User TestProfile
-	//		}{
-	//			User: TestProfile{
-	//				Email:     tplParams["EMAIL2"],
-	//				CreatedAt: FakeTime{true},
-	//				UpdatedAt: FakeTime{true},
-	//				Username:  tplParams["USERNAME2"],
-	//			},
-	//		}
-	//	},
-	//},
-	//		After: func(r *http.Response, body []byte, resp interface{}) error {
-	//			val, err := lookup.LookupString(resp, "User.Token")
-	//			if err != nil {
-	//				return err
-	//			}
-	//			tplParams["token2"] = val.String()
-	//			return nil
-	//		},
-	//	},
-	//
-	//	&ApiTestCase{
-	//		Name:           "Articles - Create Article - First user",
-	//		Method:         "POST",
-	//		Body:           `{"article":{"title":"How to write golang tests", "description":"I have problem with mondodb mocking", "body":"Any ideas how to write some intermidiate layer atop collection?", "tagList":["golang","testing", "gomock"]}}`,
-	//		URL:            "{{APIURL}}/articles",
-	//		TokenName:      "token1",
-	//		ResponseStatus: 201,
-	//		Expected: func() interface{} {
-	//			return &struct {
-	//				Article TestArticle
-	//			}{
-	//				Article: TestArticle{
-	//					Author: TestProfile{
-	//						Bio:      tplParams["BIO"],
-	//						Username: tplParams["USERNAME"],
-	//					},
-	//					Body:        "Any ideas how to write some intermidiate layer atop collection?",
-	//					Title:       "How to write golang tests",
-	//					Description: "I have problem with mondodb mocking",
-	//					CreatedAt:   FakeTime{true},
-	//					UpdatedAt:   FakeTime{true},
-	//					TagList:     []string{"golang", "testing", "gomock"},
-	//				},
-	//			}
-	//		},
-	//		After: func(r *http.Response, body []byte, resp interface{}) error {
-	//			val, err := lookup.LookupString(resp, "Article.Slug")
-	//			if err != nil {
-	//				return err
-	//			}
-	//			tplParams["slug1"] = val.String()
-	//			return nil
-	//		},
-	//	},
-	//	&ApiTestCase{
-	//		Name:           "Articles - Create Article - Second user",
-	//		Method:         "POST",
-	//		Body:           `{"article":{"title":"What will be released first, Half-Life 3 or 3-rd part of golang course?", "description":"Who knows topics in new course?", "body":"Will we use JWT-tokens in homework?", "tagList":["halflife3","coursera"]}}`,
-	//		URL:            "{{APIURL}}/articles",
-	//		TokenName:      "token2",
-	//		ResponseStatus: 201,
-	//		Expected: func() interface{} {
-	//			return &struct {
-	//				Article TestArticle
-	//			}{
-	//				Article: TestArticle{
-	//					Author: TestProfile{
-	//						Username: tplParams["USERNAME2"],
-	//					},
-	//					Body:        "Will we use JWT-tokens in homework?",
-	//					Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
-	//					Description: "Who knows topics in new course?",
-	//					CreatedAt:   FakeTime{true},
-	//					UpdatedAt:   FakeTime{true},
-	//					TagList:     []string{"halflife3", "coursera"},
-	//				},
-	//			}
-	//		},
-	//		After: func(r *http.Response, body []byte, resp interface{}) error {
-	//			val, err := lookup.LookupString(resp, "Article.Slug")
-	//			if err != nil {
-	//				return err
-	//			}
-	//			tplParams["slug2"] = val.String()
-	//			return nil
-	//		},
-	//	},
-	//
-	//	&ApiTestCase{
-	//		Name:           "Articles - All Articles",
-	//		Method:         "GET",
-	//		URL:            "{{APIURL}}/articles",
-	//		ResponseStatus: 200,
-	//		Expected: func() interface{} {
-	//			return &struct {
-	//				Articles      []TestArticle `json:"articles"`
-	//				ArticlesCount int           `json:"articlesCount"`
-	//			}{
-	//				Articles: []TestArticle{
-	//					TestArticle{
-	//						Slug: tplParams["slug1"],
-	//						Author: TestProfile{
-	//							Bio:      tplParams["BIO"],
-	//							Username: tplParams["USERNAME"],
-	//						},
-	//						Body:        "Any ideas how to write some intermidiate layer atop collection?",
-	//						Title:       "How to write golang tests",
-	//						Description: "I have problem with mondodb mocking",
-	//						CreatedAt:   FakeTime{true},
-	//						UpdatedAt:   FakeTime{true},
-	//						TagList:     []string{"golang", "testing", "gomock"},
-	//					},
-	//					TestArticle{
-	//						Slug: tplParams["slug2"],
-	//						Author: TestProfile{
-	//							Username: tplParams["USERNAME2"],
-	//						},
-	//						Body:        "Will we use JWT-tokens in homework?",
-	//						Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
-	//						Description: "Who knows topics in new course?",
-	//						CreatedAt:   FakeTime{true},
-	//						UpdatedAt:   FakeTime{true},
-	//						TagList:     []string{"halflife3", "coursera"},
-	//					},
-	//				},
-	//				ArticlesCount: 2,
-	//			}
-	//		},
-	//		Before: nil,
-	//		After:  nil,
-	//	},
-	//
-	//	&ApiTestCase{
-	//		Name:           "Articles - by author",
-	//		Method:         "GET",
-	//		URL:            "{{APIURL}}/articles?author={{USERNAME2}}",
-	//		TokenName:      "token1",
-	//		ResponseStatus: 200,
-	//		Expected: func() interface{} {
-	//			return &struct {
-	//				Articles      []TestArticle `json:"articles"`
-	//				ArticlesCount int           `json:"articlesCount"`
-	//			}{
-	//				Articles: []TestArticle{
-	//					TestArticle{
-	//						Slug: tplParams["slug2"],
-	//						Author: TestProfile{
-	//							Username: tplParams["USERNAME2"],
-	//						},
-	//						Body:        "Will we use JWT-tokens in homework?",
-	//						Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
-	//						Description: "Who knows topics in new course?",
-	//						CreatedAt:   FakeTime{true},
-	//						UpdatedAt:   FakeTime{true},
-	//						TagList:     []string{"halflife3", "coursera"},
-	//					},
-	//				},
-	//				ArticlesCount: 1,
-	//			}
-	//		},
-	//		Before: nil,
-	//		After:  nil,
-	//	},
-	//	&ApiTestCase{
-	//		Name:           "Articles - by tag",
-	//		Method:         "GET",
-	//		URL:            "{{APIURL}}/articles?tag=halflife3",
-	//		TokenName:      "token1",
-	//		ResponseStatus: 200,
-	//		Expected: func() interface{} {
-	//			return &struct {
-	//				Articles      []TestArticle `json:"articles"`
-	//				ArticlesCount int           `json:"articlesCount"`
-	//			}{
-	//				Articles: []TestArticle{
-	//					TestArticle{
-	//						Slug: tplParams["slug2"],
-	//						Author: TestProfile{
-	//							Username: tplParams["USERNAME2"],
-	//						},
-	//						Body:        "Will we use JWT-tokens in homework?",
-	//						Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
-	//						Description: "Who knows topics in new course?",
-	//						CreatedAt:   FakeTime{true},
-	//						UpdatedAt:   FakeTime{true},
-	//						TagList:     []string{"halflife3", "coursera"},
-	//					},
-	//				},
-	//				ArticlesCount: 1,
-	//			}
-	//		},
-	//		Before: nil,
-	//		After:  nil,
-	//	},
-	//
-	//	&ApiTestCase{
-	//		Name:           "No Auth - Current User - No Auth",
-	//		Method:         "GET",
-	//		URL:            "{{APIURL}}/user",
-	//		TokenName:      "", // none
-	//		ResponseStatus: 401,
-	//	},
-	//	&ApiTestCase{
-	//		Name:           "No Auth - Current User Logout - Require Auth",
-	//		Method:         "POST",
-	//		URL:            "{{APIURL}}/user/logout",
-	//		TokenName:      "", // none
-	//		ResponseStatus: 401,
-	//	},
-	//	&ApiTestCase{
-	//		Name:           "No Auth - Current User Logout",
-	//		Method:         "POST",
-	//		URL:            "{{APIURL}}/user/logout",
-	//		TokenName:      "token1",
-	//		ResponseStatus: 200,
-	//	},
-	//	&ApiTestCase{
-	//		Name:           "No Auth - Current User - No Auth after logout",
-	//		Method:         "GET",
-	//		URL:            "{{APIURL}}/user",
-	//		TokenName:      "token1",
-	//		ResponseStatus: 401,
-	//	},
-	//}
-	//
+
 	for _, item := range testCases {
 		ok := t.Run(item.Name, func(t *testing.T) {
 
 			if item.Before != nil {
 				item.Before()
 			}
-
 			// some kind of eval params with substitution
 			if item.Expected != nil {
 				item.Expected = item.Expected.(func() interface{})()
 			}
+
 			var (
 				body []byte
 				url  = replaceRe.ReplaceAllFunc([]byte(item.URL), replacer)
@@ -496,12 +493,15 @@ func TestApp(t *testing.T) {
 			if item.Body != "" {
 				body = replaceRe.ReplaceAllFunc([]byte(item.Body), replacer)
 			}
+
 			req, _ := http.NewRequest(item.Method, string(url), bytes.NewReader(body))
 			req.Header.Add("X-Requested-With", "XMLHttpRequest")
 			req.Header.Add("Content-Type", "application/json")
+
 			if item.TokenName != "" {
 				req.Header.Add("Authorization", "Token "+tplParams[item.TokenName])
 			}
+
 			resp, err := client.Do(req)
 			if err != nil {
 				t.Fatalf("request error: %v", err)
@@ -514,15 +514,18 @@ func TestApp(t *testing.T) {
 			if item.ResponseStatus != resp.StatusCode {
 				t.Fatalf("bad status code, want: %v, have:%v", item.ResponseStatus, resp.StatusCode)
 			}
+
+			// for cases with just status check
 			if item.Expected == nil {
 				return
 			}
+
 			got := WeirdMagicClone(item.Expected)
-			fmt.Println(string(respBody))
 			err = json.Unmarshal(respBody, got)
 			if err != nil {
 				t.Fatalf("cant unmarshal resp: %s, body: %s", err, respBody)
 			}
+
 			diff, equal := messagediff.PrettyDiff(item.Expected, got)
 			if !equal {
 				t.Fatalf("\033[1;31mresults not match\033[0m\n \033[1;35mbody\033[0m: %s\n\033[1;32mwant\033[0m %#v\n\033[1;34mgot\033[0m %#v\n\033[1;33mdiff\033[0m:\n%s", respBody, item.Expected, got, diff)
