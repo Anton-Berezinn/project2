@@ -270,40 +270,40 @@ func TestApp(t *testing.T) {
 				return nil
 			},
 		},
-		//&ApiTestCase{
-		//	Name:           "Articles - Create Article - First user",
-		//	Method:         "POST",
-		//	Body:           `{"article":{"title":"How to write golang tests", "description":"I have problem with mondodb mocking", "body":"Any ideas how to write some intermidiate layer atop collection?", "tagList":["golang","testing", "gomock"]}}`,
-		//	URL:            "{{APIURL}}/articles",
-		//	TokenName:      "token1",
-		//	ResponseStatus: 201,
-		//	Expected: func() interface{} {
-		//		return &struct {
-		//			Article TestArticle
-		//		}{
-		//			Article: TestArticle{
-		//				Author: TestProfile{
-		//					Bio:      tplParams["BIO"],
-		//					Username: tplParams["USERNAME"],
-		//				},
-		//				Body:        "Any ideas how to write some intermidiate layer atop collection?",
-		//				Title:       "How to write golang tests",
-		//				Description: "I have problem with mondodb mocking",
-		//				CreatedAt:   FakeTime{true},
-		//				UpdatedAt:   FakeTime{true},
-		//				TagList:     []string{"golang", "testing", "gomock"},
-		//			},
-		//		}
-		//	},
-		//	After: func(r *http.Response, body []byte, resp interface{}) error {
-		//		val, err := lookup.LookupString(resp, "Article.Slug")
-		//		if err != nil {
-		//			return err
-		//		}
-		//		tplParams["slug1"] = val.String()
-		//		return nil
-		//	},
-		//},
+		&ApiTestCase{
+			Name:           "Articles - Create Article - First user",
+			Method:         "POST",
+			Body:           `{"article":{"title":"How to write golang tests", "description":"I have problem with mondodb mocking", "body":"Any ideas how to write some intermidiate layer atop collection?", "tagList":["golang","testing", "gomock"]}}`,
+			URL:            "{{APIURL}}/articles",
+			TokenName:      "token1",
+			ResponseStatus: 201,
+			Expected: func() interface{} {
+				return &struct {
+					Article TestArticle
+				}{
+					Article: TestArticle{
+						Author: TestProfile{
+							Bio:      tplParams["BIO"],
+							Username: tplParams["USERNAME"],
+						},
+						Body:        "Any ideas how to write some intermidiate layer atop collection?",
+						Title:       "How to write golang tests",
+						Description: "I have problem with mondodb mocking",
+						CreatedAt:   FakeTime{true},
+						UpdatedAt:   FakeTime{true},
+						TagList:     []string{"golang", "testing", "gomock"},
+					},
+				}
+			},
+			After: func(r *http.Response, body []byte, resp interface{}) error {
+				val, err := lookup.LookupString(resp, "Article.Slug")
+				if err != nil {
+					return err
+				}
+				tplParams["slug1"] = val.String()
+				return nil
+			},
+		},
 		//&ApiTestCase{
 		//	Name:           "Articles - Create Article - Second user",
 		//	Method:         "POST",

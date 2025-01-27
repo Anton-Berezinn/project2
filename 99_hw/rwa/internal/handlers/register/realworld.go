@@ -1,6 +1,7 @@
 package register
 
 import (
+	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	rq "rwa/internal/handlers/request"
@@ -8,13 +9,20 @@ import (
 	storage "rwa/internal/storage/postgres"
 	wrapper "rwa/internal/storage/repository"
 	token "rwa/internal/token/jwt"
+	"sync"
 )
 
 // Handler - для хранения jwt
 type Handler struct {
 	Data storage.Reposit
-	M    map[string]int
+	Token
 	//Token jwt.Token
+}
+
+type Token struct {
+	Data  map[string]int
+	Count int
+	Mu    sync.Mutex
 }
 
 // Register - хэндлер принимать данные пользователя и отдает ответ
@@ -25,17 +33,14 @@ func (u *Handler) Register(w http.ResponseWriter, r *http.Request, _ httprouter.
 		return
 	}
 	id := wrapper.AddWrapper(u.Data, data)
-	token, err := token.CreateToken(id)
-	if err != nil {
-		http.Error(w, "something went wrong in CreateToken", http.StatusInternalServerError)
-		return
-	}
-	u.M[token] = id
+	//Игнорируем ошибку, потому что всегда прийдет nil.
+	_ = token.CreateToken(u.Token.Data, &u.Token.Count, id, u.Token.Mu)
 	value, err := resp.AnswerUser(data)
 	if err != nil {
 		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
 		return
 	}
+	fmt.Println(u.Token.Data)
 	w.WriteHeader(201)
 	w.Write(value)
 }
@@ -70,7 +75,7 @@ func (h *Handler) Main(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		w.WriteHeader(401)
 		return
 	}
-	id, b := token.CheckToken(h.M, header)
+	id, b := token.CheckToken(h.Token.Data, header, h.Token.Mu)
 	if !b {
 		w.WriteHeader(401)
 		return
@@ -97,7 +102,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		w.WriteHeader(401)
 		return
 	}
-	id, b := token.CheckToken(h.M, header)
+	id, b := token.CheckToken(h.Token.Data, header, h.Token.Mu)
 	if !b {
 		w.WriteHeader(401)
 		return
@@ -119,5 +124,8 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	}
 	w.WriteHeader(200)
 	w.Write(value)
+}
+
+func (h *Handler) CreateArticle(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 }

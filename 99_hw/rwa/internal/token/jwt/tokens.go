@@ -20,22 +20,25 @@ import (
 //	return token, nil
 //}
 
-// Для избежания data race
-var mu sync.Mutex
-
 // CreateToken - функция, для создания ключа.
-func CreateToken(id int) (string, error) {
+func CreateToken(m map[string]int, count *int, id int, mu sync.Mutex) error {
 	mu.Lock()
 	defer mu.Unlock()
-	if id == 0 {
-		return "Token", nil
+	if *count == 0 {
+		m["Token"] = id
+		*count++
+		return nil
 	}
-	s := strconv.Itoa(id)
-	return "Token" + s, nil
+	s := strconv.Itoa(*count + 1)
+	m["token"+s] = id
+	*count++
+	return nil
 }
 
 // CheckToken - функция, для проверки существования токена.
-func CheckToken(m map[string]int, header string) (int, bool) {
+func CheckToken(m map[string]int, header string, mu sync.Mutex) (int, bool) {
+	mu.Lock()
+	defer mu.Unlock()
 	if _, ok := m[header]; !ok {
 		return 0, false
 	}
