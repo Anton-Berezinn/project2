@@ -1,11 +1,12 @@
 package register
 
 import (
-	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	rq "rwa/internal/handlers/request"
+	article "rwa/internal/handlers/request_articls"
 	resp "rwa/internal/handlers/response"
+	art_resp "rwa/internal/handlers/response_articls"
 	storage "rwa/internal/storage/postgres"
 	wrapper "rwa/internal/storage/repository"
 	token "rwa/internal/token/jwt"
@@ -40,7 +41,6 @@ func (u *Handler) Register(w http.ResponseWriter, r *http.Request, _ httprouter.
 		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
 		return
 	}
-	fmt.Println(u.Token.Data)
 	w.WriteHeader(201)
 	w.Write(value)
 }
@@ -126,6 +126,35 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	w.Write(value)
 }
 
+// CreateArticle- метод, для создания артикла
 func (h *Handler) CreateArticle(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	header := r.Header.Get("Authorization")
+	if header == "" {
+		w.WriteHeader(401)
+		return
+	}
+	id, b := token.CheckToken(h.Token.Data, header, h.Token.Mu)
+	if !b {
+		w.WriteHeader(401)
+		return
+	}
+	user, b := wrapper.GetWrapper(h.Data, id) //игнорим юзера пока что
+	if !b {
+		w.WriteHeader(401)
+		return
+	}
+	data, err := article.ReadBody(r.Body)
+	if err != nil {
+		http.Error(w, "something went wrong in ReadBody", http.StatusInternalServerError)
+		return
+	}
+	value, err := art_resp.AnswerUser(data, user)
+	if err != nil {
+		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(201)
+	w.Write(value)
 
 }

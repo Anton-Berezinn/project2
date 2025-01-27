@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"fmt"
 	rp "rwa/internal/model"
 	"sync"
 )
@@ -26,13 +27,15 @@ func NewMap() *Reposit {
 	}
 }
 
+var count int
+
 // Add- метод для добавления пользователя в репозиторий.
 func (r *Reposit) Add(u rp.DataUser) int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.DB[r.Count] = &u
-	r.Count++
-	return r.Count - 1
+	r.DB[count] = &u
+	count++
+	return count - 1
 }
 
 // GetCr- метод для получения пользователя по индексу.
@@ -75,6 +78,7 @@ func (r *Reposit) Update(id int, user rp.DataUser) (rp.DataUser, bool) {
 			Email:    data.Email,
 			Bio:      data.Bio,
 		}
+		fmt.Println(r.DB)
 		return u, true
 	}
 	return rp.DataUser{}, false

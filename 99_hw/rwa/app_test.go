@@ -328,6 +328,7 @@ func TestApp(t *testing.T) {
 		//			},
 		//		}
 		//	},
+		//},
 		//	After: func(r *http.Response, body []byte, resp interface{}) error {
 		//		val, err := lookup.LookupString(resp, "Article.Slug")
 		//		if err != nil {

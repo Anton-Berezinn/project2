@@ -34,3 +34,24 @@ type Response struct {
 type FakeTime struct {
 	Valid bool `json:"Valid"`
 }
+
+type Article struct {
+	TestArticle `json:"article"`
+}
+
+type TestArticle struct {
+	Author         TestProfile `json:"author"`
+	Body           string      `json:"body"`
+	CreatedAt      time.Time   `json:"createdAt"`
+	Description    string      `json:"description"`
+	Favorited      bool        `json:"favorited"`
+	FavoritesCount int         `json:"favoritesCount"`
+	Slug           string      `json:"slug" testdiff:"ignore"`
+	TagList        []string    `json:"tagList"`
+	Title          string      `json:"title"`
+	UpdatedAt      time.Time   `json:"updatedAt"`
+}
+
+type Artic struct {
+	Article TestArticle `json:"article"`
+}
