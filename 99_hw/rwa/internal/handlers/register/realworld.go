@@ -7,15 +7,14 @@ import (
 	article "rwa/internal/handlers/request_articls"
 	resp "rwa/internal/handlers/response"
 	art_resp "rwa/internal/handlers/response_articls"
-	storage "rwa/internal/storage/postgres"
-	wrapper "rwa/internal/storage/repository"
+	reposit "rwa/internal/handlers/services"
 	token "rwa/internal/token/jwt"
 	"sync"
 )
 
 // Handler - для хранения jwt
 type Handler struct {
-	Data storage.Reposit
+	Repository reposit.UserService
 	Token
 	//Token jwt.Token
 }
@@ -33,7 +32,7 @@ func (u *Handler) Register(w http.ResponseWriter, r *http.Request, _ httprouter.
 		http.Error(w, "something went wrong in ReadBody", http.StatusInternalServerError)
 		return
 	}
-	id := wrapper.AddWrapper(u.Data, data)
+	id := u.Repository.AddWrapper(data)
 	//Игнорируем ошибку, потому что всегда прийдет nil.
 	_ = token.CreateToken(u.Token.Data, &u.Token.Count, id, u.Token.Mu)
 	value, err := resp.AnswerUser(data)
@@ -52,8 +51,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 		http.Error(w, "something went wrong in ReadBody", http.StatusInternalServerError)
 		return
 	}
-	name, b := wrapper.CheckWrapper(h.Data, data)
-	if !b {
+	name, ok := h.Repository.CheckWrapper(data)
+	if !ok {
 		w.WriteHeader(404)
 		return
 	}
@@ -75,13 +74,13 @@ func (h *Handler) Main(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		w.WriteHeader(401)
 		return
 	}
-	id, b := token.CheckToken(h.Token.Data, header, h.Token.Mu)
-	if !b {
+	id, ok := token.CheckToken(h.Token.Data, header, h.Token.Mu)
+	if !ok {
 		w.WriteHeader(401)
 		return
 	}
-	user, b := wrapper.GetWrapper(h.Data, id)
-	if !b {
+	user, ok := h.Repository.GetWrapper(id)
+	if !ok {
 		w.WriteHeader(401)
 		return
 	}
@@ -112,8 +111,8 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		http.Error(w, "something went wrong in ReadBody", http.StatusInternalServerError)
 		return
 	}
-	user, b := wrapper.UpdateWrapper(h.Data, id, data)
-	if !b {
+	user, ok := h.Repository.UpdateWrapper(id, data)
+	if !ok {
 		w.WriteHeader(401)
 		return
 	}
@@ -133,13 +132,13 @@ func (h *Handler) CreateArticle(w http.ResponseWriter, r *http.Request, _ httpro
 		w.WriteHeader(401)
 		return
 	}
-	id, b := token.CheckToken(h.Token.Data, header, h.Token.Mu)
-	if !b {
+	id, ok := token.CheckToken(h.Token.Data, header, h.Token.Mu)
+	if !ok {
 		w.WriteHeader(401)
 		return
 	}
-	user, b := wrapper.GetWrapper(h.Data, id) //игнорим юзера пока что
-	if !b {
+	user, ok := h.Repository.GetWrapper(id)
+	if !ok {
 		w.WriteHeader(401)
 		return
 	}

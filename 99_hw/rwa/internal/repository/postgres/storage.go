@@ -21,8 +21,8 @@ type I interface {
 }
 
 // NewMap- функция для создания нового репозитория.
-func NewMap() *Reposit {
-	return &Reposit{
+func NewMap() Reposit {
+	return Reposit{
 		DB: make(map[int]*rp.DataUser),
 	}
 }
