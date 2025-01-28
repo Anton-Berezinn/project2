@@ -4,13 +4,14 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"rwa/internal/handlers/register"
-	storage "rwa/internal/storage/postgres"
+	repository "rwa/internal/handlers/services"
+	storage "rwa/internal/repository/postgres"
 )
 
 func GetApp() http.Handler {
 	var h register.Handler
 	storage := storage.NewMap()
-	h.Data = *storage
+	h.Repository = repository.NewUserService(storage)
 	h.Token.Data = map[string]int{}
 	router := httprouter.New()
 	router.POST("/api/users", h.Register)

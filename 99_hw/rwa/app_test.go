@@ -304,31 +304,31 @@ func TestApp(t *testing.T) {
 				return nil
 			},
 		},
-		//&ApiTestCase{
-		//	Name:           "Articles - Create Article - Second user",
-		//	Method:         "POST",
-		//	Body:           `{"article":{"title":"What will be released first, Half-Life 3 or 3-rd part of golang course?", "description":"Who knows topics in new course?", "body":"Will we use JWT-tokens in homework?", "tagList":["halflife3","coursera"]}}`,
-		//	URL:            "{{APIURL}}/articles",
-		//	TokenName:      "token2",
-		//	ResponseStatus: 201,
-		//	Expected: func() interface{} {
-		//		return &struct {
-		//			Article TestArticle
-		//		}{
-		//			Article: TestArticle{
-		//				Author: TestProfile{
-		//					Username: tplParams["USERNAME2"],
-		//				},
-		//				Body:        "Will we use JWT-tokens in homework?",
-		//				Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
-		//				Description: "Who knows topics in new course?",
-		//				CreatedAt:   FakeTime{true},
-		//				UpdatedAt:   FakeTime{true},
-		//				TagList:     []string{"halflife3", "coursera"},
-		//			},
-		//		}
-		//	},
-		//},
+		&ApiTestCase{
+			Name:           "Articles - Create Article - Second user",
+			Method:         "POST",
+			Body:           `{"article":{"title":"What will be released first, Half-Life 3 or 3-rd part of golang course?", "description":"Who knows topics in new course?", "body":"Will we use JWT-tokens in homework?", "tagList":["halflife3","coursera"]}}`,
+			URL:            "{{APIURL}}/articles",
+			TokenName:      "token2",
+			ResponseStatus: 201,
+			Expected: func() interface{} {
+				return &struct {
+					Article TestArticle
+				}{
+					Article: TestArticle{
+						Author: TestProfile{
+							Username: tplParams["USERNAME2"],
+						},
+						Body:        "Will we use JWT-tokens in homework?",
+						Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
+						Description: "Who knows topics in new course?",
+						CreatedAt:   FakeTime{true},
+						UpdatedAt:   FakeTime{true},
+						TagList:     []string{"halflife3", "coursera"},
+					},
+				}
+			},
+		},
 		//	After: func(r *http.Response, body []byte, resp interface{}) error {
 		//		val, err := lookup.LookupString(resp, "Article.Slug")
 		//		if err != nil {
