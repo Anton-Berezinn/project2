@@ -7,7 +7,7 @@ import (
 )
 
 // AnswerUser - функция, для ответа юзеру
-func AnswerUser(u model.DataUser) ([]byte, error) {
+func AnswerUser(u model.DataUser, token string) ([]byte, error) {
 	answer := model.Response{
 		User: model.TestProfile{
 			ID:        u.ID,
@@ -15,6 +15,7 @@ func AnswerUser(u model.DataUser) ([]byte, error) {
 			Username:  u.Username,
 			CreatedAt: time.Now(),
 			Bio:       u.Bio,
+			Token:     token,
 		},
 	}
 	data, err := json.Marshal(answer)

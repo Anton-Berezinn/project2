@@ -3,6 +3,7 @@ package postgres
 import (
 	"fmt"
 	rp "rwa/internal/model"
+	"strconv"
 	"sync"
 )
 
@@ -14,15 +15,16 @@ type Reposit struct {
 }
 
 type I interface {
-	Add(u rp.DataUser)
-	Get(id int) (rp.DataUser, bool)
-	Update(id int, u rp.DataUser) bool
+	Add(u rp.DataUser) int
+	GetCr(id int) (rp.DataUser, bool)
+	Check(user rp.DataUser) (string, int, bool)
+	Update(id int, user rp.DataUser) (rp.DataUser, bool)
 	Delete(id int) bool
 }
 
 // NewMap- функция для создания нового репозитория.
-func NewMap() *Reposit {
-	return &Reposit{
+func NewMap() Reposit {
+	return Reposit{
 		DB: make(map[int]*rp.DataUser),
 	}
 }
@@ -33,6 +35,8 @@ var count int
 func (r *Reposit) Add(u rp.DataUser) int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	id := strconv.Itoa(r.Count)
+	u.ID = id
 	r.DB[count] = &u
 	count++
 	return count - 1
@@ -53,13 +57,17 @@ func (r *Reposit) GetCr(id int) (rp.DataUser, bool) {
 
 }
 
-func (r *Reposit) Check(user rp.DataUser) (string, bool) {
+func (r *Reposit) Check(user rp.DataUser) (string, int, bool) {
 	for _, u := range r.DB {
 		if u.Email == user.Email && u.Password == user.Password {
-			return u.Username, true
+			id, err := strconv.Atoi(u.ID)
+			if err != nil {
+				return "", 0, false
+			}
+			return u.Username, id, true
 		}
 	}
-	return "", false
+	return "", 0, false
 }
 
 // Update - метод для обновления данных пользователя.
