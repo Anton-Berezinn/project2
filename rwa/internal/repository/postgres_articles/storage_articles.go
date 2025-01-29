@@ -12,6 +12,8 @@ type Reposit struct {
 type I interface {
 	Add(data Articl.Article) error
 	FindAll() ([]Articl.Article, int)
+	GetTag(tagName string) Reposit
+	GetAuthor(name string) Reposit
 }
 
 func (r *Reposit) Add(data Articl.Article) error {
