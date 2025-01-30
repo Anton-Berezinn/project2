@@ -6,17 +6,17 @@ import (
 	"net/http"
 	"rwa/internal/config"
 	"rwa/internal/dto"
-	reposit "rwa/internal/handlers/services"
 	storageUser "rwa/internal/repository/postgres"
 	storage "rwa/internal/repository/postgres_articles"
+	"rwa/internal/services"
 	token "rwa/internal/token/jwt"
 	"strings"
 	"sync"
 )
 
 type Handler struct {
-	Repository        reposit.UserService
-	RepositoryArticle reposit.ArticleService
+	Repository        services.UserService
+	RepositoryArticle services.ArticleService
 	SecretKey         string
 	Answer            dto.Answer
 	Request           dto.Request
@@ -36,8 +36,8 @@ func NewHandler() *Handler {
 		Token: Token{
 			Data: make(map[string]int),
 		},
-		Repository:        reposit.NewUserService(storage),
-		RepositoryArticle: reposit.NewUserServiceArticles(),
+		Repository:        services.NewUserService(storage),
+		RepositoryArticle: services.NewUserServiceArticles(),
 		Answer:            dto.Answer{},
 		Request:           dto.Request{},
 	}
