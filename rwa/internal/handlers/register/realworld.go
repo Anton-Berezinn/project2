@@ -18,8 +18,6 @@ type Handler struct {
 	Repository        services.UserService
 	RepositoryArticle services.ArticleService
 	SecretKey         string
-	Answer            dto.Answer
-	Request           dto.Request
 	*Token
 }
 
