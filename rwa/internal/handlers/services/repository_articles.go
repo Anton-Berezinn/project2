@@ -1,7 +1,7 @@
-package services_articles
+package services
 
 import (
-	response "rwa/internal/handlers/response_articles"
+	"rwa/internal/dto"
 	storage "rwa/internal/repository/postgres_articles"
 )
 
@@ -15,7 +15,7 @@ func NewUserServiceArticles() ArticleService {
 }
 
 // AddWrapper- обертка.
-func (a *ArticleService) AddWrapper(data response.Article) error {
+func (a *ArticleService) AddWrappers(data dto.Article) error {
 	return a.Storage.Add(data)
 }
 

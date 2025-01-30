@@ -381,69 +381,69 @@ func TestApp(t *testing.T) {
 			Before: nil,
 			After:  nil,
 		},
-		//&ApiTestCase{
-		//	Name:           "Articles - by author",
-		//	Method:         "GET",
-		//	URL:            "{{APIURL}}/articles?author={{USERNAME2}}",
-		//	TokenName:      "token1",
-		//	ResponseStatus: 200,
-		//	Expected: func() interface{} {
-		//		return &struct {
-		//			Articles      []TestArticle `json:"articles"`
-		//			ArticlesCount int           `json:"articlesCount"`
-		//		}{
-		//			Articles: []TestArticle{
-		//				TestArticle{
-		//					Slug: tplParams["slug2"],
-		//					Author: TestProfile{
-		//						Username: tplParams["USERNAME2"],
-		//					},
-		//					Body:        "Will we use JWT-tokens in homework?",
-		//					Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
-		//					Description: "Who knows topics in new course?",
-		//					CreatedAt:   FakeTime{true},
-		//					UpdatedAt:   FakeTime{true},
-		//					TagList:     []string{"halflife3", "coursera"},
-		//				},
-		//			},
-		//			ArticlesCount: 1,
-		//		}
-		//	},
-		//	Before: nil,
-		//	After:  nil,
-		//},
-		//&ApiTestCase{
-		//	Name:           "Articles - by tag",
-		//	Method:         "GET",
-		//	URL:            "{{APIURL}}/articles?tag=halflife3",
-		//	TokenName:      "token1",
-		//	ResponseStatus: 200,
-		//	Expected: func() interface{} {
-		//		return &struct {
-		//			Articles      []TestArticle `json:"articles"`
-		//			ArticlesCount int           `json:"articlesCount"`
-		//		}{
-		//			Articles: []TestArticle{
-		//				TestArticle{
-		//					Slug: tplParams["slug2"],
-		//					Author: TestProfile{
-		//						Username: tplParams["USERNAME2"],
-		//					},
-		//					Body:        "Will we use JWT-tokens in homework?",
-		//					Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
-		//					Description: "Who knows topics in new course?",
-		//					CreatedAt:   FakeTime{true},
-		//					UpdatedAt:   FakeTime{true},
-		//					TagList:     []string{"halflife3", "coursera"},
-		//				},
-		//			},
-		//			ArticlesCount: 1,
-		//		}
-		//	},
-		//	Before: nil,
-		//	After:  nil,
-		//},
-		//
+		&ApiTestCase{
+			Name:           "Articles - by author",
+			Method:         "GET",
+			URL:            "{{APIURL}}/articles?author={{USERNAME2}}",
+			TokenName:      "token1",
+			ResponseStatus: 200,
+			Expected: func() interface{} {
+				return &struct {
+					Articles      []TestArticle `json:"articles"`
+					ArticlesCount int           `json:"articlesCount"`
+				}{
+					Articles: []TestArticle{
+						TestArticle{
+							Slug: tplParams["slug2"],
+							Author: TestProfile{
+								Username: tplParams["USERNAME2"],
+							},
+							Body:        "Will we use JWT-tokens in homework?",
+							Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
+							Description: "Who knows topics in new course?",
+							CreatedAt:   FakeTime{true},
+							UpdatedAt:   FakeTime{true},
+							TagList:     []string{"halflife3", "coursera"},
+						},
+					},
+					ArticlesCount: 1,
+				}
+			},
+			Before: nil,
+			After:  nil,
+		},
+		&ApiTestCase{
+			Name:           "Articles - by tag",
+			Method:         "GET",
+			URL:            "{{APIURL}}/articles?tag=halflife3",
+			TokenName:      "token1",
+			ResponseStatus: 200,
+			Expected: func() interface{} {
+				return &struct {
+					Articles      []TestArticle `json:"articles"`
+					ArticlesCount int           `json:"articlesCount"`
+				}{
+					Articles: []TestArticle{
+						TestArticle{
+							Slug: tplParams["slug2"],
+							Author: TestProfile{
+								Username: tplParams["USERNAME2"],
+							},
+							Body:        "Will we use JWT-tokens in homework?",
+							Title:       "What will be released first, Half-Life 3 or 3-rd part of golang course?",
+							Description: "Who knows topics in new course?",
+							CreatedAt:   FakeTime{true},
+							UpdatedAt:   FakeTime{true},
+							TagList:     []string{"halflife3", "coursera"},
+						},
+					},
+					ArticlesCount: 1,
+				}
+			},
+			Before: nil,
+			After:  nil,
+		},
+
 		&ApiTestCase{
 			Name:           "No Auth - Current User - No Auth",
 			Method:         "GET",

@@ -1,26 +1,25 @@
 package register
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
-	rq "rwa/internal/handlers/request"
-	article "rwa/internal/handlers/request_articles"
-	resp "rwa/internal/handlers/response"
-	art_resp "rwa/internal/handlers/response_articles"
+	"rwa/internal/config"
+	"rwa/internal/dto"
 	reposit "rwa/internal/handlers/services"
-	repositArt "rwa/internal/handlers/services_articles"
+	storageUser "rwa/internal/repository/postgres"
+	storage "rwa/internal/repository/postgres_articles"
 	token "rwa/internal/token/jwt"
 	"strings"
 	"sync"
 )
 
-// Todo: Куда положить Handler? я пытался положить в app.go, но потом импортнуть не мог.
 type Handler struct {
 	Repository        reposit.UserService
-	RepositoryArticle repositArt.ArticleService
+	RepositoryArticle reposit.ArticleService
 	SecretKey         string
+	Answer            dto.Answer
+	Request           dto.Request
 	Token
 }
 
@@ -30,21 +29,37 @@ type Token struct {
 	Mu    sync.Mutex
 }
 
+func NewHandler() *Handler {
+	storage := storageUser.NewMap()
+	return &Handler{
+		SecretKey: config.ConfigNew(),
+		Token: Token{
+			Data: make(map[string]int),
+		},
+		Repository:        reposit.NewUserService(storage),
+		RepositoryArticle: reposit.NewUserServiceArticles(),
+		Answer:            dto.Answer{},
+		Request:           dto.Request{},
+	}
+}
+
+//Todo: сделать низкоуровневые
+
 // Register - хэндлер принимать данные пользователя и отдает ответ
-func (u *Handler) Register(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	data, err := rq.ReadBody(r.Body)
+func (h *Handler) Register(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	data, err := h.Request.ReadBody(r.Body)
 	if err != nil {
 		http.Error(w, "something went wrong in ReadBody", http.StatusInternalServerError)
 		return
 	}
-	id := u.Repository.AddWrapper(data)
-	tokenname, err := token.CreateToken(u.Data, id, u.SecretKey)
+	id := h.Repository.AddWrapper(data)
+	tokenname, err := token.CreateToken(h.Data, id, h.SecretKey)
 	if err != nil {
 		http.Error(w, "something went wrong in CreateToken", http.StatusInternalServerError)
 		return
 	}
 
-	value, err := resp.AnswerUser(data, tokenname)
+	value, err := h.Answer.AnswerUser(data, tokenname)
 	if err != nil {
 		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
 		return
@@ -55,7 +70,7 @@ func (u *Handler) Register(w http.ResponseWriter, r *http.Request, _ httprouter.
 
 // Login - метод для проверки аунтификации.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	data, err := rq.ReadBody(r.Body)
+	data, err := h.Request.ReadBody(r.Body)
 	if err != nil {
 		http.Error(w, "something went wrong in ReadBody", http.StatusInternalServerError)
 		return
@@ -73,7 +88,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 		http.Error(w, "something went wrong in CreateToken", http.StatusInternalServerError)
 		return
 	}
-	value, err := resp.AnswerUser(data, tokenName)
+	value, err := h.Answer.AnswerUser(data, tokenName)
 	if err != nil {
 		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
 		return
@@ -101,7 +116,7 @@ func (h *Handler) Main(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		w.WriteHeader(401)
 		return
 	}
-	value, err := resp.AnswerUser(user, "")
+	value, err := h.Answer.AnswerUser(user, "")
 	if err != nil {
 		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
 		return
@@ -131,7 +146,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		http.Error(w, "something went wrong in CreateToken", http.StatusInternalServerError)
 		return
 	}
-	data, err := rq.ReadBody(r.Body)
+	data, err := h.Request.ReadBody(r.Body)
 
 	if err != nil {
 		http.Error(w, "something went wrong in ReadBody", http.StatusInternalServerError)
@@ -142,7 +157,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		w.WriteHeader(401)
 		return
 	}
-	value, err := resp.AnswerUser(user, tokenname)
+	value, err := h.Answer.AnswerUser(user, tokenname)
 	if err != nil {
 		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
 		return
@@ -169,16 +184,15 @@ func (h *Handler) CreateArticle(w http.ResponseWriter, r *http.Request, _ httpro
 		w.WriteHeader(500)
 		return
 	}
-	data, err := article.ReadBody(r.Body, user)
+	data, err := h.Request.ReadBodyArticle(r.Body, user)
 	if err != nil {
 		http.Error(w, "something went wrong in ReadBody", http.StatusInternalServerError)
 		return
 	}
 
-	//Todo: положить данные
 	//игнорируем ошибку, там всегда будет nil
-	_ = h.RepositoryArticle.AddWrapper(data)
-	value, err := art_resp.AnswerUser(data)
+	_ = h.RepositoryArticle.AddWrappers(data)
+	value, err := h.Answer.AnswerT(data)
 	if err != nil {
 		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
 		return
@@ -190,22 +204,40 @@ func (h *Handler) CreateArticle(w http.ResponseWriter, r *http.Request, _ httpro
 
 // GetArticles -handler.
 func (h *Handler) GetArticles(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	//Todo: я пытался изменить url, он все равно приходил сюда и если пробовать по p.ByName достать,будет пусто
-	if r.URL.String() == "/api/articles/" {
-		answer := h.RepositoryArticle.GetAllWrapper()
-		data, err := json.Marshal(answer)
-		if err != nil {
-			http.Error(w, "something went wrong in GetArticles", http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(200)
-		w.Write(data)
-		return
-	} else {
-		fmt.Println(r.URL.String())
-		fmt.Println(r.Body, "here")
+	name := r.URL.Query().Get("author")
+	tag := r.URL.Query().Get("tag")
+	data := storage.Reposit{}
+	if tag != "" && name == "" {
+		data = h.GetByTag(tag)
 	}
+	if name == "" && tag == "" {
+		data = h.GetAll()
+	}
+	if name != "" && tag == "" {
+		data = h.GetByAuthor(name)
+	}
+	value, err := h.Answer.AnswerTag(data)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error retrieving articles: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(200)
+	w.Write(value)
+}
 
+func (h *Handler) GetAll() storage.Reposit {
+	answer := h.RepositoryArticle.GetAllWrapper()
+	return answer
+}
+
+func (h *Handler) GetByAuthor(name string) storage.Reposit {
+	answer := h.RepositoryArticle.GetByNameWrapper(name)
+	return answer
+}
+
+func (h *Handler) GetByTag(tag string) storage.Reposit {
+	answer := h.RepositoryArticle.GetByTagWrapper(tag)
+	return answer
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

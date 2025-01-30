@@ -1,4 +1,4 @@
-package response_articles
+package dto
 
 import (
 	"encoding/json"
@@ -6,7 +6,42 @@ import (
 	"time"
 )
 
+type Ans interface {
+	AnswerUser(u model.DataUser, token string) ([]byte, error)
+	AnswerTag(data interface{}) ([]byte, error)
+	AnswerT(u Article) ([]byte, error)
+}
+
+type Answer struct{}
+
 // AnswerUser - функция, для ответа юзеру
+func (a *Answer) AnswerUser(u model.DataUser, token string) ([]byte, error) {
+	answer := model.Response{
+		User: model.TestProfile{
+			ID:        u.ID,
+			Email:     u.Email,
+			Username:  u.Username,
+			CreatedAt: time.Now(),
+			Bio:       u.Bio,
+			Token:     token,
+		},
+	}
+	data, err := json.Marshal(answer)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// AnswerTag - функция, для ответа юзеру по id или name
+func (a *Answer) AnswerTag(data interface{}) ([]byte, error) {
+	value, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
 type Artic struct {
 	Article Article `json:"article"`
 }
@@ -24,8 +59,8 @@ type Article struct {
 	UpdatedAt      time.Time      `json:"updatedAt"`
 }
 
-// AnswerUser - функция, для ответа юзеру
-func AnswerUser(u Article) ([]byte, error) {
+// AswerT - функция, для ответа юзеру
+func (a *Answer) AnswerT(u Article) ([]byte, error) {
 	answer := Artic{
 		Article: Article{
 			Author: model.DataUser{

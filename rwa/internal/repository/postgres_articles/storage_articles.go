@@ -1,7 +1,8 @@
 package postgres_articles
 
 import (
-	Articl "rwa/internal/handlers/response_articles"
+	"fmt"
+	Articl "rwa/internal/dto"
 )
 
 type Reposit struct {
@@ -39,6 +40,7 @@ func (r *Reposit) GetAuthor(name string) Reposit {
 
 func (r *Reposit) GetTag(tagName string) Reposit {
 	answer := Reposit{}
+	fmt.Println(tagName, "tagname")
 	for _, v := range r.Articles {
 		for _, value := range v.TagList {
 			if value == tagName {
