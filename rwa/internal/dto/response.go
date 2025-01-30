@@ -6,16 +6,8 @@ import (
 	"time"
 )
 
-type Ans interface {
-	AnswerUser(u model.DataUser, token string) ([]byte, error)
-	AnswerTag(data interface{}) ([]byte, error)
-	AnswerT(u Article) ([]byte, error)
-}
-
-type Answer struct{}
-
 // AnswerUser - функция, для ответа юзеру
-func (a *Answer) AnswerUser(u model.DataUser, token string) ([]byte, error) {
+func AnswerUser(u model.DataUser, token string) ([]byte, error) {
 	answer := model.Response{
 		User: model.TestProfile{
 			ID:        u.ID,
@@ -34,7 +26,7 @@ func (a *Answer) AnswerUser(u model.DataUser, token string) ([]byte, error) {
 }
 
 // AnswerTag - функция, для ответа юзеру по id или name
-func (a *Answer) AnswerTag(data interface{}) ([]byte, error) {
+func AnswerTag(data interface{}) ([]byte, error) {
 	value, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
@@ -60,7 +52,7 @@ type Article struct {
 }
 
 // AswerT - функция, для ответа юзеру
-func (a *Answer) AnswerT(u Article) ([]byte, error) {
+func NewAnswerTag(u Article) ([]byte, error) {
 	answer := Artic{
 		Article: Article{
 			Author: model.DataUser{

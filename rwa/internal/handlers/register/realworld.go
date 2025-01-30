@@ -20,7 +20,7 @@ type Handler struct {
 	SecretKey         string
 	Answer            dto.Answer
 	Request           dto.Request
-	Token
+	*Token
 }
 
 type Token struct {
@@ -29,23 +29,25 @@ type Token struct {
 	Mu    sync.Mutex
 }
 
+func NewTokenStorage() *Token {
+	return &Token{
+		Data: make(map[string]int),
+	}
+}
+
 func NewHandler() *Handler {
 	storage := storageUser.NewMap()
 	return &Handler{
-		SecretKey: config.ConfigNew(),
-		Token: Token{
-			Data: make(map[string]int),
-		},
+		SecretKey:         config.ConfigNew(),
+		Token:             NewTokenStorage(),
 		Repository:        services.NewUserService(storage),
 		RepositoryArticle: services.NewUserServiceArticles(),
-		Answer:            dto.Answer{},
-		Request:           dto.Request{},
 	}
 }
 
 // Register - хэндлер принимать данные пользователя и отдает ответ
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	data, err := h.Request.ReadBody(r.Body)
+	data, err := dto.ReadBody(r.Body)
 	if err != nil {
 		http.Error(w, "something went wrong in ReadBody", http.StatusInternalServerError)
 		return
@@ -57,7 +59,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request, _ httprouter.
 		return
 	}
 
-	value, err := h.Answer.AnswerUser(data, tokenname)
+	value, err := dto.AnswerUser(data, tokenname)
 	if err != nil {
 		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
 		return
@@ -68,7 +70,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request, _ httprouter.
 
 // Login - метод для проверки аунтификации.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	data, err := h.Request.ReadBody(r.Body)
+	data, err := dto.ReadBody(r.Body)
 	if err != nil {
 		http.Error(w, "something went wrong in ReadBody", http.StatusInternalServerError)
 		return
@@ -86,7 +88,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 		http.Error(w, "something went wrong in CreateToken", http.StatusInternalServerError)
 		return
 	}
-	value, err := h.Answer.AnswerUser(data, tokenName)
+	value, err := dto.AnswerUser(data, tokenName)
 	if err != nil {
 		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
 		return
@@ -114,7 +116,7 @@ func (h *Handler) Main(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		w.WriteHeader(401)
 		return
 	}
-	value, err := h.Answer.AnswerUser(user, "")
+	value, err := dto.AnswerUser(user, "")
 	if err != nil {
 		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
 		return
@@ -144,7 +146,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		http.Error(w, "something went wrong in CreateToken", http.StatusInternalServerError)
 		return
 	}
-	data, err := h.Request.ReadBody(r.Body)
+	data, err := dto.ReadBody(r.Body)
 
 	if err != nil {
 		http.Error(w, "something went wrong in ReadBody", http.StatusInternalServerError)
@@ -155,7 +157,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		w.WriteHeader(401)
 		return
 	}
-	value, err := h.Answer.AnswerUser(user, tokenname)
+	value, err := dto.AnswerUser(user, tokenname)
 	if err != nil {
 		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
 		return
@@ -182,7 +184,7 @@ func (h *Handler) CreateArticle(w http.ResponseWriter, r *http.Request, _ httpro
 		w.WriteHeader(500)
 		return
 	}
-	data, err := h.Request.ReadBodyArticle(r.Body, user)
+	data, err := dto.ReadBodyArticle(r.Body, user)
 	if err != nil {
 		http.Error(w, "something went wrong in ReadBody", http.StatusInternalServerError)
 		return
@@ -190,7 +192,7 @@ func (h *Handler) CreateArticle(w http.ResponseWriter, r *http.Request, _ httpro
 
 	//игнорируем ошибку, там всегда будет nil
 	_ = h.RepositoryArticle.AddWrappers(data)
-	value, err := h.Answer.AnswerT(data)
+	value, err := dto.NewAnswerTag(data)
 	if err != nil {
 		http.Error(w, "something went wrong in AnswerUser", http.StatusInternalServerError)
 		return
@@ -214,7 +216,7 @@ func (h *Handler) GetArticles(w http.ResponseWriter, r *http.Request, p httprout
 	if name != "" && tag == "" {
 		data = h.GetByAuthor(name)
 	}
-	value, err := h.Answer.AnswerTag(data)
+	value, err := dto.AnswerTag(data)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error retrieving articles: %v", err), http.StatusInternalServerError)
 		return

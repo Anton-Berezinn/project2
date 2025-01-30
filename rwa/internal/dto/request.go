@@ -7,15 +7,8 @@ import (
 	"rwa/internal/model"
 )
 
-type I interface {
-	ReadBody(r io.ReadCloser) (model.DataUser, error)
-	ReadBodyArticle(r io.ReadCloser, user model.DataUser) (Article, error)
-}
-
-type Request struct{}
-
-// ReadBody - метод,для чтения данных пользователя в структуру User, отдает ответ вложенную структуру.
-func (req *Request) ReadBody(r io.ReadCloser) (model.DataUser, error) {
+// ReadBody - функция,для чтения данных пользователя в структуру User, отдает ответ вложенную структуру.
+func ReadBody(r io.ReadCloser) (model.DataUser, error) {
 	u := &model.Userr{}
 	resp, err := io.ReadAll(r)
 	if err != nil {
@@ -28,8 +21,8 @@ func (req *Request) ReadBody(r io.ReadCloser) (model.DataUser, error) {
 	return u.DataUser, nil
 }
 
-// ReadBodyArticle - метод, для чтения данных по артиклу.
-func (req *Request) ReadBodyArticle(r io.ReadCloser, user model.DataUser) (Article, error) {
+// ReadBodyArticle - функция, для чтения данных по артиклу.
+func ReadBodyArticle(r io.ReadCloser, user model.DataUser) (Article, error) {
 	u := &Artic{}
 	resp, err := io.ReadAll(r)
 	if err != nil {
