@@ -43,8 +43,6 @@ func NewHandler() *Handler {
 	}
 }
 
-//Todo: сделать низкоуровневые
-
 // Register - хэндлер принимать данные пользователя и отдает ответ
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	data, err := h.Request.ReadBody(r.Body)
