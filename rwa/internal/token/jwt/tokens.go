@@ -49,7 +49,7 @@ func DecodeToken(tokenString string, key string) (*Token, error) {
 	return nil, fmt.Errorf("invalid token")
 }
 
-// CheckToken - функция, для проверки токена, если токен есть удаляем.
+// CheckToken - функция, для проверки токена.
 func CheckToken(m map[string]int, token string, mu sync.Mutex) (int, bool) {
 	for k, id := range m {
 		if k == token {
